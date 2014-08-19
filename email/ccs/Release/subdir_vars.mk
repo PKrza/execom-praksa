@@ -7,18 +7,20 @@ CMD_SRCS += \
 ../cc3200v1p32.cmd 
 
 C_SRCS += \
-C:/ti/CC3200SDK/cc3200-sdk/MQTTPacket/src/MQTTConnectClient.c \
-C:/ti/CC3200SDK/cc3200-sdk/MQTTPacket/src/MQTTConnectServer.c \
-C:/ti/CC3200SDK/cc3200-sdk/MQTTPacket/src/MQTTDeserializePublish.c \
-C:/ti/CC3200SDK/cc3200-sdk/MQTTPacket/src/MQTTPacket.c \
-C:/ti/CC3200SDK/cc3200-sdk/MQTTPacket/src/MQTTSerializePublish.c \
-C:/ti/CC3200SDK/cc3200-sdk/MQTTPacket/src/MQTTSubscribeClient.c \
-C:/ti/CC3200SDK/cc3200-sdk/MQTTPacket/src/MQTTSubscribeServer.c \
+C:/Users/pkrza/GIT/execom_praksa/execom-praksa/email/MQTTPacket/src/MQTTConnectClient.c \
+C:/Users/pkrza/GIT/execom_praksa/execom-praksa/email/MQTTPacket/src/MQTTConnectServer.c \
+C:/Users/pkrza/GIT/execom_praksa/execom-praksa/email/MQTTPacket/src/MQTTDeserializePublish.c \
+C:/Users/pkrza/GIT/execom_praksa/execom-praksa/email/MQTTPacket/src/MQTTPacket.c \
+C:/Users/pkrza/GIT/execom_praksa/execom-praksa/email/MQTTPacket/src/MQTTSerializePublish.c \
+C:/Users/pkrza/GIT/execom_praksa/execom-praksa/email/MQTTPacket/src/MQTTSubscribeClient.c \
+C:/Users/pkrza/GIT/execom_praksa/execom-praksa/email/MQTTPacket/src/MQTTSubscribeServer.c \
+C:/Users/pkrza/GIT/execom_praksa/execom-praksa/email/MQTTPacket/src/MQTTUnsubscribeClient.c \
+C:/Users/pkrza/GIT/execom_praksa/execom-praksa/email/MQTTPacket/src/MQTTUnsubscribeServer.c \
 C:/ti/CC3200SDK/cc3200-sdk/example/common/gpio_if.c \
 C:/ti/CC3200SDK/cc3200-sdk/example/common/i2c_if.c \
-C:/ti/CC3200SDK/cc3200-sdk/example/email/main.c \
+C:/Users/pkrza/GIT/execom_praksa/execom-praksa/email/main.c \
 C:/ti/CC3200SDK/cc3200-sdk/example/common/network_if.c \
-C:/ti/CC3200SDK/cc3200-sdk/example/email/pinmux.c \
+C:/Users/pkrza/GIT/execom_praksa/execom-praksa/email/pinmux.c \
 C:/ti/CC3200SDK/cc3200-sdk/example/common/timer_if.c \
 C:/ti/CC3200SDK/cc3200-sdk/example/out_of_box/tmp006drv.c \
 C:/ti/CC3200SDK/cc3200-sdk/example/common/uart_if.c 
@@ -31,6 +33,8 @@ OBJS += \
 ./MQTTSerializePublish.obj \
 ./MQTTSubscribeClient.obj \
 ./MQTTSubscribeServer.obj \
+./MQTTUnsubscribeClient.obj \
+./MQTTUnsubscribeServer.obj \
 ./gpio_if.obj \
 ./i2c_if.obj \
 ./main.obj \
@@ -48,6 +52,8 @@ C_DEPS += \
 ./MQTTSerializePublish.pp \
 ./MQTTSubscribeClient.pp \
 ./MQTTSubscribeServer.pp \
+./MQTTUnsubscribeClient.pp \
+./MQTTUnsubscribeServer.pp \
 ./gpio_if.pp \
 ./i2c_if.pp \
 ./main.pp \
@@ -65,6 +71,8 @@ C_DEPS__QUOTED += \
 "MQTTSerializePublish.pp" \
 "MQTTSubscribeClient.pp" \
 "MQTTSubscribeServer.pp" \
+"MQTTUnsubscribeClient.pp" \
+"MQTTUnsubscribeServer.pp" \
 "gpio_if.pp" \
 "i2c_if.pp" \
 "main.pp" \
@@ -82,6 +90,8 @@ OBJS__QUOTED += \
 "MQTTSerializePublish.obj" \
 "MQTTSubscribeClient.obj" \
 "MQTTSubscribeServer.obj" \
+"MQTTUnsubscribeClient.obj" \
+"MQTTUnsubscribeServer.obj" \
 "gpio_if.obj" \
 "i2c_if.obj" \
 "main.obj" \
@@ -92,18 +102,20 @@ OBJS__QUOTED += \
 "uart_if.obj" 
 
 C_SRCS__QUOTED += \
-"C:/ti/CC3200SDK/cc3200-sdk/MQTTPacket/src/MQTTConnectClient.c" \
-"C:/ti/CC3200SDK/cc3200-sdk/MQTTPacket/src/MQTTConnectServer.c" \
-"C:/ti/CC3200SDK/cc3200-sdk/MQTTPacket/src/MQTTDeserializePublish.c" \
-"C:/ti/CC3200SDK/cc3200-sdk/MQTTPacket/src/MQTTPacket.c" \
-"C:/ti/CC3200SDK/cc3200-sdk/MQTTPacket/src/MQTTSerializePublish.c" \
-"C:/ti/CC3200SDK/cc3200-sdk/MQTTPacket/src/MQTTSubscribeClient.c" \
-"C:/ti/CC3200SDK/cc3200-sdk/MQTTPacket/src/MQTTSubscribeServer.c" \
+"C:/Users/pkrza/GIT/execom_praksa/execom-praksa/email/MQTTPacket/src/MQTTConnectClient.c" \
+"C:/Users/pkrza/GIT/execom_praksa/execom-praksa/email/MQTTPacket/src/MQTTConnectServer.c" \
+"C:/Users/pkrza/GIT/execom_praksa/execom-praksa/email/MQTTPacket/src/MQTTDeserializePublish.c" \
+"C:/Users/pkrza/GIT/execom_praksa/execom-praksa/email/MQTTPacket/src/MQTTPacket.c" \
+"C:/Users/pkrza/GIT/execom_praksa/execom-praksa/email/MQTTPacket/src/MQTTSerializePublish.c" \
+"C:/Users/pkrza/GIT/execom_praksa/execom-praksa/email/MQTTPacket/src/MQTTSubscribeClient.c" \
+"C:/Users/pkrza/GIT/execom_praksa/execom-praksa/email/MQTTPacket/src/MQTTSubscribeServer.c" \
+"C:/Users/pkrza/GIT/execom_praksa/execom-praksa/email/MQTTPacket/src/MQTTUnsubscribeClient.c" \
+"C:/Users/pkrza/GIT/execom_praksa/execom-praksa/email/MQTTPacket/src/MQTTUnsubscribeServer.c" \
 "C:/ti/CC3200SDK/cc3200-sdk/example/common/gpio_if.c" \
 "C:/ti/CC3200SDK/cc3200-sdk/example/common/i2c_if.c" \
-"C:/ti/CC3200SDK/cc3200-sdk/example/email/main.c" \
+"C:/Users/pkrza/GIT/execom_praksa/execom-praksa/email/main.c" \
 "C:/ti/CC3200SDK/cc3200-sdk/example/common/network_if.c" \
-"C:/ti/CC3200SDK/cc3200-sdk/example/email/pinmux.c" \
+"C:/Users/pkrza/GIT/execom_praksa/execom-praksa/email/pinmux.c" \
 "C:/ti/CC3200SDK/cc3200-sdk/example/common/timer_if.c" \
 "C:/ti/CC3200SDK/cc3200-sdk/example/out_of_box/tmp006drv.c" \
 "C:/ti/CC3200SDK/cc3200-sdk/example/common/uart_if.c" 

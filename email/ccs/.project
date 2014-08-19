@@ -29,42 +29,52 @@
 		<link>
 			<name>MQTTConnectClient.c</name>
 			<type>1</type>
-			<locationURI>PARENT-3-PROJECT_LOC/MQTTPacket/src/MQTTConnectClient.c</locationURI>
+			<locationURI>PARENT-1-PROJECT_LOC/MQTTPacket/src/MQTTConnectClient.c</locationURI>
 		</link>
 		<link>
 			<name>MQTTConnectServer.c</name>
 			<type>1</type>
-			<locationURI>PARENT-3-PROJECT_LOC/MQTTPacket/src/MQTTConnectServer.c</locationURI>
+			<locationURI>PARENT-1-PROJECT_LOC/MQTTPacket/src/MQTTConnectServer.c</locationURI>
 		</link>
 		<link>
 			<name>MQTTDeserializePublish.c</name>
 			<type>1</type>
-			<locationURI>PARENT-3-PROJECT_LOC/MQTTPacket/src/MQTTDeserializePublish.c</locationURI>
+			<locationURI>PARENT-1-PROJECT_LOC/MQTTPacket/src/MQTTDeserializePublish.c</locationURI>
 		</link>
 		<link>
 			<name>MQTTPacket.c</name>
 			<type>1</type>
-			<locationURI>PARENT-3-PROJECT_LOC/MQTTPacket/src/MQTTPacket.c</locationURI>
+			<locationURI>PARENT-1-PROJECT_LOC/MQTTPacket/src/MQTTPacket.c</locationURI>
 		</link>
 		<link>
 			<name>MQTTSerializePublish.c</name>
 			<type>1</type>
-			<locationURI>PARENT-3-PROJECT_LOC/MQTTPacket/src/MQTTSerializePublish.c</locationURI>
+			<locationURI>PARENT-1-PROJECT_LOC/MQTTPacket/src/MQTTSerializePublish.c</locationURI>
 		</link>
 		<link>
 			<name>MQTTSubscribeClient.c</name>
 			<type>1</type>
-			<locationURI>PARENT-3-PROJECT_LOC/MQTTPacket/src/MQTTSubscribeClient.c</locationURI>
+			<locationURI>PARENT-1-PROJECT_LOC/MQTTPacket/src/MQTTSubscribeClient.c</locationURI>
 		</link>
 		<link>
 			<name>MQTTSubscribeServer.c</name>
 			<type>1</type>
-			<locationURI>PARENT-3-PROJECT_LOC/MQTTPacket/src/MQTTSubscribeServer.c</locationURI>
+			<locationURI>PARENT-1-PROJECT_LOC/MQTTPacket/src/MQTTSubscribeServer.c</locationURI>
+		</link>
+		<link>
+			<name>MQTTUnsubscribeClient.c</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/MQTTPacket/src/MQTTUnsubscribeClient.c</locationURI>
+		</link>
+		<link>
+			<name>MQTTUnsubscribeServer.c</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/MQTTPacket/src/MQTTUnsubscribeServer.c</locationURI>
 		</link>
 		<link>
 			<name>gpio_if.c</name>
 			<type>1</type>
-			<locationURI>PARENT-2-PROJECT_LOC/common/gpio_if.c</locationURI>
+			<locationURI>PARENT-7-PROJECT_LOC/ti/CC3200SDK/cc3200-sdk/example/common/gpio_if.c</locationURI>
 		</link>
 		<link>
 			<name>i2c_if.c</name>
@@ -79,7 +89,7 @@
 		<link>
 			<name>network_if.c</name>
 			<type>1</type>
-			<locationURI>PARENT-2-PROJECT_LOC/common/network_if.c</locationURI>
+			<locationURI>PARENT-7-PROJECT_LOC/ti/CC3200SDK/cc3200-sdk/example/common/network_if.c</locationURI>
 		</link>
 		<link>
 			<name>pinmux.c</name>
@@ -89,17 +99,17 @@
 		<link>
 			<name>timer_if.c</name>
 			<type>1</type>
-			<locationURI>PARENT-2-PROJECT_LOC/common/timer_if.c</locationURI>
+			<locationURI>PARENT-7-PROJECT_LOC/ti/CC3200SDK/cc3200-sdk/example/common/timer_if.c</locationURI>
 		</link>
 		<link>
 			<name>tmp006drv.c</name>
 			<type>1</type>
-			<locationURI>PARENT-2-PROJECT_LOC/out_of_box/tmp006drv.c</locationURI>
+			<locationURI>PARENT-7-PROJECT_LOC/ti/CC3200SDK/cc3200-sdk/example/out_of_box/tmp006drv.c</locationURI>
 		</link>
 		<link>
 			<name>uart_if.c</name>
 			<type>1</type>
-			<locationURI>PARENT-2-PROJECT_LOC/common/uart_if.c</locationURI>
+			<locationURI>PARENT-7-PROJECT_LOC/ti/CC3200SDK/cc3200-sdk/example/common/uart_if.c</locationURI>
 		</link>
 	</linkedResources>
 </projectDescription>
