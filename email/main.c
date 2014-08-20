@@ -317,7 +317,7 @@ TimerPeriodicIntHandler(void)
     TimerIntClear(TIMERA0_BASE, ulInts);
 
     g_usTimerInts++;
-    if(g_usTimerInts == 2)
+    if(g_usTimerInts == 12*heartbeat)
     {
     	g_usTimerInts = 0;
     	interupt_flag = 1;
