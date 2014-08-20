@@ -106,7 +106,7 @@ int buflen = sizeof(buf);
 char iSocketDesc;
 char interupt_flag = 1;
 int heartbeat = 1;
-int server_rtc;
+long server_rtc;
 
 int iAddrSize = sizeof(SlSockAddrIn_t);
 SlSockAddrIn_t  sAddr;
@@ -184,8 +184,9 @@ signed char receivePublish(void)
 			{
 				//Message("\n\r\n\r Decryption in progress....");
 				AESCrypt(AES_CFG_DIR_DECRYPT, (char *)payload_in, recievedFromServer);
-				Report("\n\rPrimljena poruka: %s\n\r", recievedFromServer);
-				Message("\n\r Decryption done\r\n");
+				UART_PRINT("\n\rPrimljena poruka: %s\n\r", recievedFromServer);
+				//heartbeat = strlen(recievedFromServer);
+				//UART_PRINT("\n\r Decryption done. Recived message lenght: %d\r\n", heartbeat);
 
 				ptr = strtok(recievedFromServer, " ;");
 				ptr = strtok(NULL, " ;");
@@ -193,6 +194,8 @@ signed char receivePublish(void)
 				ptr = strtok(NULL, " ;");
 				ptr = strtok(NULL, " ;");
 				heartbeat = atoi(ptr);
+				if(heartbeat == 0)
+					heartbeat = 1;
 			} while(heartbeat > 600 || server_rtc < 4000000);
 
 			rc = 0;
@@ -292,8 +295,6 @@ void AESCrypt(long direction, char *sourceBuff, char *resultBuff)
 	AESIVSet(AES_BASE, IV);
 	AESKey1Set(AES_BASE,(unsigned char *)Key, AES_CFG_KEY_SIZE_128BIT);
 
-    //PRCMPeripheralReset(PRCM_DTHE);
-	//AESIVSet(AES_BASE,IV);
     AESDataProcess(AES_BASE, (unsigned char *)sourceBuff, (unsigned char *)resultBuff, iSize);
 }
 
@@ -311,41 +312,16 @@ void
 TimerPeriodicIntHandler(void)
 {
     unsigned long ulInts;
-    //
-    // Clear all pending interrupts from the timer we are
-    // currently using.
-    //
     ulInts = TimerIntStatus(TIMERA0_BASE, true);
     TimerIntClear(TIMERA0_BASE, ulInts);
-    //Timer_IF_InterruptClear(TIMERA0_BASE);
-    //
-    // Increment our interrupt counter.
-    //
 
     g_usTimerInts++;
     if(g_usTimerInts == 2)
     {
     	g_usTimerInts = 0;
     	interupt_flag = 1;
+    }
 
-    }
-	//DBG_PRINT("\nTimer interrupt\n\r");
-    /*
-    if(!(g_usTimerInts & 0x1))
-    {
-        //
-        // Off Led
-        //
-        GPIO_IF_LedOff(MCU_RED_LED_GPIO);
-    }
-    else
-    {
-        //
-        // On Led
-        //
-    	GPIO_IF_LedOn(MCU_RED_LED_GPIO);
-    }
-    */
 }
 
 //****************************************************************************
@@ -430,6 +406,8 @@ static void MainTask(void *pvParameters)
 	float temp_raw;
 	int Temp = 0;
 	int brojac = 0;
+	char count=0;
+
 	g_usTimerInts = 0;
 	//filling the data for needed for MQTT
 	data.clientID.cstring = "PKrzaID";
@@ -450,7 +428,10 @@ static void MainTask(void *pvParameters)
 	TimerEnable(TIMERA0_BASE,TIMER_A);
 
 	// subscribe to config/016
-    Subscribe_MQTT();
+	do
+	{
+		Temp = Subscribe_MQTT();
+	}while(Temp < 0);
 
 	topicString.cstring = "sensors/016";
 
@@ -463,33 +444,40 @@ static void MainTask(void *pvParameters)
 		{
 		}
 
-		Timer_IF_Stop(TIMERA0_BASE, TIMER_A);
-		TMP006DrvGetTemp(&temp_raw);
-		Temp = (int)(temp_raw*10);
+			//Timer_IF_Stop(TIMERA0_BASE, TIMER_A);
+			TMP006DrvGetTemp(&temp_raw);
+			Temp = (int)(temp_raw*10);
 
-		do
-		{
-			MQTT_payload_string(messageToBeCrypted,Temp);
-			UART_PRINT("Usao u do while\n\r");
-			AESCrypt(AES_CFG_DIR_ENCRYPT, messageToBeCrypted, cryptedMessage);
-			Temp = Send_MQTT(cryptedMessage);
-			if(Temp < 0)
+			do
 			{
-				conect_to_AP();
-			}
-			if(!Temp)
-				Temp = receivePublish();
-		} while(Temp < 0);
+				count++;
+				MQTT_payload_string(messageToBeCrypted,Temp);
+				UART_PRINT("Usao u do while. Message: %s\n\r",messageToBeCrypted);
+				AESCrypt(AES_CFG_DIR_ENCRYPT, messageToBeCrypted, cryptedMessage);
+				Temp = Send_MQTT(cryptedMessage);
+				if(Temp < 0 || count > 5)
+				{
+					TimerDisable(TIMERA0_BASE, TIMER_A);
+					conect_to_AP();
+					Temp = Subscribe_MQTT();
+					TimerLoadSet(TIMERA0_BASE, TIMER_A, (PERIODIC_TEST_CYCLES * 5));
+					TimerEnable(TIMERA0_BASE,TIMER_A);
+					count = 0;
+				}
+				if(!Temp)
+					Temp = receivePublish();
+			} while(Temp < 0);
 
-		brojac++;
-		UART_PRINT("%d) Message <%s> sent successfuly\r\n", brojac, messageToBeCrypted);
-		UART_PRINT("Server RTC: %d\r\nServer HEARTBEAT: %d\r\n", server_rtc, heartbeat);
+			count = 0;
+			brojac++;
+			UART_PRINT("%d) Message <%s> sent successfuly\r\n", brojac, messageToBeCrypted);
+			UART_PRINT("Server RTC: %d\r\nServer HEARTBEAT: %d\r\n", server_rtc, heartbeat);
 
-		TimerLoadSet(TIMERA0_BASE, TIMER_A, (PERIODIC_TEST_CYCLES * 5));
-		TimerEnable(TIMERA0_BASE,TIMER_A);
+			//TimerLoadSet(TIMERA0_BASE, TIMER_A, (PERIODIC_TEST_CYCLES * 5));
+			//TimerEnable(TIMERA0_BASE,TIMER_A);
 
-		interupt_flag = 0;
-		//GPIOIntEnable(GPIOA1_BASE, 0x20);
+			interupt_flag = 0;
+			//GPIOIntEnable(GPIOA1_BASE, 0x20);
 	}
 }
 
@@ -723,6 +711,10 @@ void conect_to_AP(void)
 	//
 	do
 	{
+		SecurityParams.Key = SECURITY_KEY;
+		SecurityParams.KeyLen = strlen(SECURITY_KEY);
+		SecurityParams.Type = SECURITY_TYPE;
+
 		status = Network_IF_ConnectAP(SSID_NAME,SecurityParams);
 		if(status < 0)
 		{
@@ -798,7 +790,8 @@ void MQTT_payload_string(char * buff_ptr, int temperature)
 	{
 		number = timestamp % 10;
 		timestamp /= 10;
-		*--pointer = number+48; // +48 to get the ASCII value for number
+		--pointer;
+		*pointer = number+48; // +48 to get the ASCII value for number
 	}
 	pointer += count;
 
@@ -813,21 +806,26 @@ void MQTT_payload_string(char * buff_ptr, int temperature)
 
 	if(battery == 100)
 	{
-		*pointer++ = 49;
-		*pointer++ = 48;
-		*pointer++ = 48;
+		*pointer = 49;
+		pointer++;
+		*pointer = 48;
+		pointer++;
+		*pointer = 48;
+		pointer++;
 	}
 	else if(battery < 100 && battery >9)
 	{
 		pointer ++;
-		*pointer-- = (battery % 10)+48;
+		*pointer = (battery % 10)+48;
+		pointer--;
 		battery /= 10;
 		*pointer = (battery % 10)+48;
 		pointer += 2;
 	}
 	else if(battery < 10)
 	{
-		*pointer++ = battery;
+		*pointer = battery;
+		pointer++;
 	}
 
 	strcpy(pointer, ";BUFFER U:");
@@ -847,15 +845,18 @@ void MQTT_payload_string(char * buff_ptr, int temperature)
 		{
 			number = timestamp % 10;
 			timestamp /= 10;
-			*--pointer = number+48;
+			--pointer;
+			*pointer = number+48;
 		}
 		pointer += count;
 		strcpy(pointer, ":");
 		pointer+=3;
 
-		*pointer-- = (temperature % 10)+48;
+		*pointer = (temperature % 10)+48;
+		pointer--;
 		temperature /= 10;
-		*pointer-- = (temperature % 10)+48;
+		*pointer = (temperature % 10)+48;
+		pointer--;
 		temperature /= 10;
 		*pointer = (temperature % 10)+48;
 		pointer+=3;
@@ -922,9 +923,9 @@ void main()
   DisplayBanner(APP_NAME);
 
   // Initialize AP security params
-  SecurityParams.Key = SECURITY_KEY;
-  SecurityParams.KeyLen = strlen(SECURITY_KEY);
-  SecurityParams.Type = SECURITY_TYPE;
+  //SecurityParams.Key = SECURITY_KEY;
+  //SecurityParams.KeyLen = strlen(SECURITY_KEY);
+  //SecurityParams.Type = SECURITY_TYPE;
   
   //
   // Simplelinkspawntask
