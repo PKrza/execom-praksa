@@ -97,16 +97,17 @@ static volatile bool g_bDataOutIntFlag;
 
 
 // u messageToBeCrypted formira poruka koja se kriptuje, a rezultat se upisuje u cryptedMessage koja se salje na server
-char messageToBeCrypted[MAX_BUFF_SIZE];
-char cryptedMessage[MAX_BUFF_SIZE];
-char recievedFromServer[MAX_BUFF_SIZE];
+char messageToBeCrypted[MAX_BUFF_SIZE] = {0};
+char cryptedMessage[MAX_BUFF_SIZE] = {0};
+char recievedFromServer[MAX_BUFF_SIZE] = {0};
 unsigned char buf[200];
 int buflen = sizeof(buf);
 
 char iSocketDesc;
 char interupt_flag = 1;
 int heartbeat = 1;
-long server_rtc;
+long server_rtc = 0;
+char messageLength = 0;
 
 int iAddrSize = sizeof(SlSockAddrIn_t);
 SlSockAddrIn_t  sAddr;
@@ -180,13 +181,13 @@ signed char receivePublish(void)
 
 			MQTTDeserialize_publish(&dup, &qos, &retained, &msgid, &receivedTopic, &payload_in, &payloadlen_in, buf, buflen);
 
-			do
-			{
+			//do
+			//{
 				//Message("\n\r\n\r Decryption in progress....");
 				AESCrypt(AES_CFG_DIR_DECRYPT, (char *)payload_in, recievedFromServer);
 				UART_PRINT("\n\rPrimljena poruka: %s\n\r", recievedFromServer);
-				//heartbeat = strlen(recievedFromServer);
-				//UART_PRINT("\n\r Decryption done. Recived message lenght: %d\r\n", heartbeat);
+				messageLength = strlen(recievedFromServer);
+				UART_PRINT("\n\r Decryption done. Recived message lenght: %d\r\n", heartbeat);
 
 				ptr = strtok(recievedFromServer, " ;");
 				ptr = strtok(NULL, " ;");
@@ -196,7 +197,7 @@ signed char receivePublish(void)
 				heartbeat = atoi(ptr);
 				if(heartbeat == 0)
 					heartbeat = 1;
-			} while(heartbeat > 600 || server_rtc < 4000000);
+			//} while(heartbeat > 600 || server_rtc < 4000000);
 
 			rc = 0;
 		}
@@ -407,6 +408,7 @@ static void MainTask(void *pvParameters)
 	int Temp = 0;
 	int brojac = 0;
 	char count=0;
+	signed char status;
 
 	g_usTimerInts = 0;
 	//filling the data for needed for MQTT
@@ -430,7 +432,7 @@ static void MainTask(void *pvParameters)
 	// subscribe to config/016
 	do
 	{
-		Temp = Subscribe_MQTT();
+		status = Subscribe_MQTT();
 	}while(Temp < 0);
 
 	topicString.cstring = "sensors/016";
@@ -454,21 +456,22 @@ static void MainTask(void *pvParameters)
 				MQTT_payload_string(messageToBeCrypted,Temp);
 				UART_PRINT("Usao u do while. Message: %s\n\r",messageToBeCrypted);
 				AESCrypt(AES_CFG_DIR_ENCRYPT, messageToBeCrypted, cryptedMessage);
-				Temp = Send_MQTT(cryptedMessage);
-				if(Temp < 0 || count > 5)
+				status = Send_MQTT(cryptedMessage);
+				if(status < 0 || count > 5)
 				{
 					TimerDisable(TIMERA0_BASE, TIMER_A);
 					conect_to_AP();
-					Temp = Subscribe_MQTT();
+					status = Subscribe_MQTT();
 					TimerLoadSet(TIMERA0_BASE, TIMER_A, (PERIODIC_TEST_CYCLES * 5));
 					TimerEnable(TIMERA0_BASE,TIMER_A);
 					count = 0;
 				}
-				if(!Temp)
-					Temp = receivePublish();
-			} while(Temp < 0);
+				if(!status)
+					status = receivePublish();
+			} while(status < 0 || messageLength < 27 || messageLength > 29);
 
 			count = 0;
+			messageLength = 0;
 			brojac++;
 			UART_PRINT("%d) Message <%s> sent successfuly\r\n", brojac, messageToBeCrypted);
 			UART_PRINT("Server RTC: %d\r\nServer HEARTBEAT: %d\r\n", server_rtc, heartbeat);
@@ -642,7 +645,7 @@ signed char Send_MQTT(char *message)
 	}
 
 	// form a publish message
-	len = MQTTSerialize_publish(buf, buflen, 0, 0, 1, 0, topicString, (unsigned char *)message, payloadlen);
+	len = MQTTSerialize_publish(buf, buflen, 0, 0, 0, 0, topicString, (unsigned char *)message, payloadlen);
 	iStatus = sl_Send(iSockID, buf, len, 0);
 	  if( iStatus < 0 )
 	  {
