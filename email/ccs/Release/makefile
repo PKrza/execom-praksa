@@ -16,6 +16,7 @@ $(GEN_CMDS__FLAG) \
 "./main.obj" \
 "./i2c_if.obj" \
 "./gpio_if.obj" \
+"./adc_func.obj" \
 "./MQTTUnsubscribeServer.obj" \
 "./MQTTUnsubscribeClient.obj" \
 "./MQTTSubscribeServer.obj" \
@@ -164,8 +165,8 @@ email.hex: $(EXE_OUTPUTS)
 # Other Targets
 clean:
 	-$(RM) $(EXE_OUTPUTS__QUOTED)$(BIN_OUTPUTS__QUOTED)
-	-$(RM) "MQTTConnectClient.pp" "MQTTConnectServer.pp" "MQTTDeserializePublish.pp" "MQTTPacket.pp" "MQTTSerializePublish.pp" "MQTTSubscribeClient.pp" "MQTTSubscribeServer.pp" "MQTTUnsubscribeClient.pp" "MQTTUnsubscribeServer.pp" "gpio_if.pp" "i2c_if.pp" "main.pp" "network_if.pp" "pinmux.pp" "timer_if.pp" "tmp006drv.pp" "uart_if.pp" 
-	-$(RM) "MQTTConnectClient.obj" "MQTTConnectServer.obj" "MQTTDeserializePublish.obj" "MQTTPacket.obj" "MQTTSerializePublish.obj" "MQTTSubscribeClient.obj" "MQTTSubscribeServer.obj" "MQTTUnsubscribeClient.obj" "MQTTUnsubscribeServer.obj" "gpio_if.obj" "i2c_if.obj" "main.obj" "network_if.obj" "pinmux.obj" "timer_if.obj" "tmp006drv.obj" "uart_if.obj" 
+	-$(RM) "MQTTConnectClient.pp" "MQTTConnectServer.pp" "MQTTDeserializePublish.pp" "MQTTPacket.pp" "MQTTSerializePublish.pp" "MQTTSubscribeClient.pp" "MQTTSubscribeServer.pp" "MQTTUnsubscribeClient.pp" "MQTTUnsubscribeServer.pp" "adc_func.pp" "gpio_if.pp" "i2c_if.pp" "main.pp" "network_if.pp" "pinmux.pp" "timer_if.pp" "tmp006drv.pp" "uart_if.pp" 
+	-$(RM) "MQTTConnectClient.obj" "MQTTConnectServer.obj" "MQTTDeserializePublish.obj" "MQTTPacket.obj" "MQTTSerializePublish.obj" "MQTTSubscribeClient.obj" "MQTTSubscribeServer.obj" "MQTTUnsubscribeClient.obj" "MQTTUnsubscribeServer.obj" "adc_func.obj" "gpio_if.obj" "i2c_if.obj" "main.obj" "network_if.obj" "pinmux.obj" "timer_if.obj" "tmp006drv.obj" "uart_if.obj" 
 	-@echo 'Finished clean'
 	-@echo ' '
 

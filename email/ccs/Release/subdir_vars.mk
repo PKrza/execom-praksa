@@ -16,6 +16,7 @@ C:/Users/pkrza/GIT/execom_praksa/execom-praksa/email/MQTTPacket/src/MQTTSubscrib
 C:/Users/pkrza/GIT/execom_praksa/execom-praksa/email/MQTTPacket/src/MQTTSubscribeServer.c \
 C:/Users/pkrza/GIT/execom_praksa/execom-praksa/email/MQTTPacket/src/MQTTUnsubscribeClient.c \
 C:/Users/pkrza/GIT/execom_praksa/execom-praksa/email/MQTTPacket/src/MQTTUnsubscribeServer.c \
+C:/Users/pkrza/GIT/execom_praksa/execom-praksa/email/Includes/adc_lib/adc_func.c \
 C:/ti/CC3200SDK/cc3200-sdk/example/common/gpio_if.c \
 C:/ti/CC3200SDK/cc3200-sdk/example/common/i2c_if.c \
 C:/Users/pkrza/GIT/execom_praksa/execom-praksa/email/main.c \
@@ -35,6 +36,7 @@ OBJS += \
 ./MQTTSubscribeServer.obj \
 ./MQTTUnsubscribeClient.obj \
 ./MQTTUnsubscribeServer.obj \
+./adc_func.obj \
 ./gpio_if.obj \
 ./i2c_if.obj \
 ./main.obj \
@@ -54,6 +56,7 @@ C_DEPS += \
 ./MQTTSubscribeServer.pp \
 ./MQTTUnsubscribeClient.pp \
 ./MQTTUnsubscribeServer.pp \
+./adc_func.pp \
 ./gpio_if.pp \
 ./i2c_if.pp \
 ./main.pp \
@@ -73,6 +76,7 @@ C_DEPS__QUOTED += \
 "MQTTSubscribeServer.pp" \
 "MQTTUnsubscribeClient.pp" \
 "MQTTUnsubscribeServer.pp" \
+"adc_func.pp" \
 "gpio_if.pp" \
 "i2c_if.pp" \
 "main.pp" \
@@ -92,6 +96,7 @@ OBJS__QUOTED += \
 "MQTTSubscribeServer.obj" \
 "MQTTUnsubscribeClient.obj" \
 "MQTTUnsubscribeServer.obj" \
+"adc_func.obj" \
 "gpio_if.obj" \
 "i2c_if.obj" \
 "main.obj" \
@@ -111,6 +116,7 @@ C_SRCS__QUOTED += \
 "C:/Users/pkrza/GIT/execom_praksa/execom-praksa/email/MQTTPacket/src/MQTTSubscribeServer.c" \
 "C:/Users/pkrza/GIT/execom_praksa/execom-praksa/email/MQTTPacket/src/MQTTUnsubscribeClient.c" \
 "C:/Users/pkrza/GIT/execom_praksa/execom-praksa/email/MQTTPacket/src/MQTTUnsubscribeServer.c" \
+"C:/Users/pkrza/GIT/execom_praksa/execom-praksa/email/Includes/adc_lib/adc_func.c" \
 "C:/ti/CC3200SDK/cc3200-sdk/example/common/gpio_if.c" \
 "C:/ti/CC3200SDK/cc3200-sdk/example/common/i2c_if.c" \
 "C:/Users/pkrza/GIT/execom_praksa/execom-praksa/email/main.c" \

@@ -46,12 +46,14 @@
 #include "i2c_if.h"
 #include "tmp006drv.h"
 
+
 // common interface includes
 
 #include "network_if.h"
 #include "timer_if.h"
 #include "gpio.h"
 #include "gpio_if.h"
+#include "adc_func.h"
 #ifndef NOTERM
 #include "uart_if.h"
 #endif
@@ -84,6 +86,8 @@
 #define COMP_IP				0x0a000008 // computers IP adres (for testing virtual broker)
 #define WOLKABOUT_IP		0x25fc7d5a // 37.252.125.90
 #define PORT_NUM            1883	   // port number
+#define SUBSCRIBE_TOPIC		"config/016"
+#define PUBLISH_TOPIC		"sensors/016"
 
 // AES key and initialization vector
 char Key[16] = "no-preshared-key";
@@ -108,6 +112,7 @@ char interupt_flag = 1;
 int heartbeat = 1;
 long server_rtc = 0;
 char messageLength = 0;
+int pingSent = 0;
 
 int iAddrSize = sizeof(SlSockAddrIn_t);
 SlSockAddrIn_t  sAddr;
@@ -128,6 +133,7 @@ signed char g_cConnectStatus;
 /* AP Security Parameters */
 SlSecParams_t SecurityParams = {0};
 
+//SlSockAddr_t Server_adress = {0};
 
 //*****************************************************************************
 //                      GLOBAL VARIABLES for VECTOR TABLE
@@ -148,15 +154,17 @@ void Send_email(void);
 void AESCrypt(long direction, char *sourceBuff, char *resultBuff);
 void AESIntHandler(void);
 signed char Send_MQTT(char *message);
-void MQTT_payload_string(char * buff_ptr, int temperature);
+void MQTT_payload_string(char * buff_ptr, int temperature, char battery);
 void AESInit(void);
 int getdata(unsigned char* buf, int count);
 signed char Subscribe_MQTT(void);
 signed char receivePublish(void);
 
+
 int getdata(unsigned char* buf, int count)
 {
 	return recv(iSockID, buf, count, 0);
+	//return sl_RecvFrom(iSockID, buf, count, 0, (SlSockAddr_t *)&sAddr, (SlSocklen_t*)&iAddrSize);
 }
 
 signed char receivePublish(void)
@@ -164,6 +172,8 @@ signed char receivePublish(void)
 	//int iStatus;
 	char *ptr = recievedFromServer;
 	signed char rc = -1;
+
+	memcpy(buf, 0, buflen);
 
 	if (MQTTPacket_read(buf, buflen, getdata) == PUBLISH)
 		{
@@ -185,9 +195,9 @@ signed char receivePublish(void)
 			//{
 				//Message("\n\r\n\r Decryption in progress....");
 				AESCrypt(AES_CFG_DIR_DECRYPT, (char *)payload_in, recievedFromServer);
-				UART_PRINT("\n\rPrimljena poruka: %s\n\r", recievedFromServer);
 				messageLength = strlen(recievedFromServer);
-				UART_PRINT("\n\r Decryption done. Recived message lenght: %d\r\n", heartbeat);
+				//UART_PRINT("\n\r Decryption done. Recived message lenght: %d\r\n", messageLength);
+				UART_PRINT("\n\rRecieved message: %s Message length: %d\n\r", recievedFromServer, messageLength);
 
 				ptr = strtok(recievedFromServer, " ;");
 				ptr = strtok(NULL, " ;");
@@ -195,10 +205,12 @@ signed char receivePublish(void)
 				ptr = strtok(NULL, " ;");
 				ptr = strtok(NULL, " ;");
 				heartbeat = atoi(ptr);
+
 				if(heartbeat == 0)
 					heartbeat = 1;
-			//} while(heartbeat > 600 || server_rtc < 4000000);
 
+
+			//} while(heartbeat > 600 || server_rtc < 4000000);
 			rc = 0;
 		}
 	return rc;
@@ -317,7 +329,7 @@ TimerPeriodicIntHandler(void)
     TimerIntClear(TIMERA0_BASE, ulInts);
 
     g_usTimerInts++;
-    if(g_usTimerInts == 12*heartbeat)
+    if(g_usTimerInts == 12)//*heartbeat)
     {
     	g_usTimerInts = 0;
     	interupt_flag = 1;
@@ -406,21 +418,12 @@ static void MainTask(void *pvParameters)
 {
 	float temp_raw;
 	int Temp = 0;
+	char battery = 0;
 	int brojac = 0;
 	char count=0;
 	signed char status;
 
 	g_usTimerInts = 0;
-	//filling the data for needed for MQTT
-	data.clientID.cstring = "PKrzaID";
-	data.keepAliveInterval = 60;
-	data.cleansession = 1;
-	data.MQTTVersion = 3;
-
-	//filling the TCP server socket address
-	sAddr.sin_family = SL_AF_INET;
-	sAddr.sin_port = sl_Htons((unsigned short)1883);
-	sAddr.sin_addr.s_addr = sl_Htonl((unsigned int)WOLKABOUT_IP);
 
 	// connect to access point
     conect_to_AP();
@@ -433,9 +436,8 @@ static void MainTask(void *pvParameters)
 	do
 	{
 		status = Subscribe_MQTT();
-	}while(Temp < 0);
+	}while(status < 0);
 
-	topicString.cstring = "sensors/016";
 
     while(1)
     {
@@ -450,14 +452,25 @@ static void MainTask(void *pvParameters)
 			TMP006DrvGetTemp(&temp_raw);
 			Temp = (int)(temp_raw*10);
 
+			battery =  batteryVoltage();
+			UART_PRINT("Battery: %d\r\n", battery);
+
 			do
 			{
 				count++;
-				MQTT_payload_string(messageToBeCrypted,Temp);
-				UART_PRINT("Usao u do while. Message: %s\n\r",messageToBeCrypted);
+				if(!pingSent)
+					MQTT_payload_string(messageToBeCrypted,Temp, battery);
+
+				else
+				{
+					memset(messageToBeCrypted, 0x00, MAX_BUFF_SIZE);
+					strcpy(messageToBeCrypted, "RTC 0000000000;");
+				}
+
+				UART_PRINT("Usao u do while\r\n");
 				AESCrypt(AES_CFG_DIR_ENCRYPT, messageToBeCrypted, cryptedMessage);
 				status = Send_MQTT(cryptedMessage);
-				if(status < 0 || count > 5)
+				if(status < 0 || count > 10)
 				{
 					TimerDisable(TIMERA0_BASE, TIMER_A);
 					conect_to_AP();
@@ -465,6 +478,7 @@ static void MainTask(void *pvParameters)
 					TimerLoadSet(TIMERA0_BASE, TIMER_A, (PERIODIC_TEST_CYCLES * 5));
 					TimerEnable(TIMERA0_BASE,TIMER_A);
 					count = 0;
+					pingSent = 0;
 				}
 				if(!status)
 					status = receivePublish();
@@ -476,9 +490,10 @@ static void MainTask(void *pvParameters)
 			UART_PRINT("%d) Message <%s> sent successfuly\r\n", brojac, messageToBeCrypted);
 			UART_PRINT("Server RTC: %d\r\nServer HEARTBEAT: %d\r\n", server_rtc, heartbeat);
 
-			//TimerLoadSet(TIMERA0_BASE, TIMER_A, (PERIODIC_TEST_CYCLES * 5));
-			//TimerEnable(TIMERA0_BASE,TIMER_A);
+			if(!pingSent)
+				pingSent = heartbeat;
 
+			pingSent--;
 			interupt_flag = 0;
 			//GPIOIntEnable(GPIOA1_BASE, 0x20);
 	}
@@ -523,31 +538,37 @@ signed char Subscribe_MQTT(void)
 	int iStatus;
 	int req_qos = 0;
 
+	//filling the data for needed for MQTT
+	data.clientID.cstring = "PKrzaID";
+	data.keepAliveInterval = 90;
+	data.cleansession = 1;
+	data.MQTTVersion = 3;
+
 	struct timeval tv;
 	tv.tv_sec = 1;  /* 1 second Timeout */
-	tv.tv_usec = 0;
+	tv.tv_usec = 0; //500000; // half a secund
 
+		// creating a TCP socket
+		iSockID = sl_Socket(SL_AF_INET,SL_SOCK_STREAM, 0);
+		if( iSockID < 0 )
+		{
+		// error
+			UART_PRINT("Unable to create a TCP socket\r\n");
+			return -1;
+		}
 
-	// creating a TCP socket
-	iSockID = sl_Socket(SL_AF_INET,SL_SOCK_STREAM, 0);
-	if( iSockID < 0 )
-	{
-	// error
-		UART_PRINT("Unable to create a TCP socket\r\n");
-		return -1;
-	}
+		sl_SetSockOpt(iSockID, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv,sizeof(struct timeval));
 
-	sl_SetSockOpt(iSockID, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv,sizeof(struct timeval));
+		// connecting to TCP server
+		iStatus = sl_Connect(iSockID, ( SlSockAddr_t *)&sAddr, iAddrSize);
+		if( iStatus < 0 )
+		{
+		// error
+			sl_Close(iSockID);
+			UART_PRINT("Unable to connect to TCP server\r\n");
+			return -1;
+		}
 
-	// connecting to TCP server
-	iStatus = sl_Connect(iSockID, ( SlSockAddr_t *)&sAddr, iAddrSize);
-	if( iStatus < 0 )
-	{
-	// error
-		sl_Close(iSockID);
-		UART_PRINT("Unable to connect to TCP server\r\n");
-		return -1;
-	}
 
 	// form a connect message
 	len = MQTTSerialize_connect(buf, buflen, &data);
@@ -577,7 +598,8 @@ signed char Subscribe_MQTT(void)
 		 Message("\n\rERROR:nisam uspeo da se konektujem");
 	}
 
-	topicString.cstring = "config/016";
+	topicString.cstring = SUBSCRIBE_TOPIC;
+
 	len = MQTTSerialize_subscribe(buf, buflen, 0, msgid, 1, &topicString, &req_qos);
 
 	iStatus = sl_Send(iSockID, buf, len, 0);
@@ -604,6 +626,9 @@ signed char Subscribe_MQTT(void)
 	}
 
 	Message("\n\r..zavrsio subscribe...\n\r");
+
+
+	topicString.cstring = PUBLISH_TOPIC;
 
 	return 0;
 }
@@ -647,6 +672,7 @@ signed char Send_MQTT(char *message)
 	// form a publish message
 	len = MQTTSerialize_publish(buf, buflen, 0, 0, 0, 0, topicString, (unsigned char *)message, payloadlen);
 	iStatus = sl_Send(iSockID, buf, len, 0);
+	//iStatus =  sl_SendTo(iSockID, buf, len, 0, ( SlSockAddr_t *)&sAddr, iAddrSize);
 	  if( iStatus < 0 )
 	  {
 		// error
@@ -697,6 +723,11 @@ BoardInit(void)
 void conect_to_AP(void)
 {
 	int status;
+
+	//filling the TCP server socket address
+	sAddr.sin_family = SL_AF_INET;
+	sAddr.sin_port = sl_Htons((unsigned short)1883);
+	sAddr.sin_addr.s_addr = sl_Htonl((unsigned int)WOLKABOUT_IP);
 
 	Network_IF_ResetMCUStateMachine();
 	//
@@ -770,12 +801,12 @@ void AESInit(void)
 // 	RTC <unix timestamp>;CHARGING <0/1>;BATTERY <0-100>;BUFFER U:<unix timestamp>:<temperature*10>;
 //*****************************************************************************
 
-void MQTT_payload_string(char * buff_ptr, int temperature)
+void MQTT_payload_string(char * buff_ptr, int temperature, char battery)
 {
 	char *pointer = buff_ptr;
 	unsigned int timestamp = time(NULL);
-	char charging = 1;
-	char battery = rand() % 100;
+	char charging = 0;
+	//char battery = rand() % 100;
 	unsigned int number = timestamp;
 	char count = 0;
 
@@ -887,13 +918,13 @@ void main()
   PinMuxConfig();
   GPIOIntRegister(GPIOA1_BASE, PushButtonHandler);
 
+  // Set up the timer
   PRCMPeripheralReset(PRCM_TIMERA0);
   TimerConfigure(TIMERA0_BASE, TIMER_A);
   TimerPrescaleSet(TIMERA0_BASE, TIMER_A, 0);
-
   TimerIntRegister(TIMERA0_BASE, TIMER_A, TimerPeriodicIntHandler);
-
   TimerLoadSet(TIMERA0_BASE, TIMER_A, (PERIODIC_TEST_CYCLES * 5));
+
 
   //AESInit();
   LedTimerConfigNStart();
@@ -919,7 +950,7 @@ void main()
 
   I2C_IF_Open(I2C_MASTER_MODE_FST);
   TMP006DrvOpen();
-
+  initADC();
   //
   // Display Welcome Message
   //

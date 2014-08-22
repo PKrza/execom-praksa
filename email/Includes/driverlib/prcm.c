@@ -66,6 +66,7 @@
 #define SYS_CLK                   80000000
 #define XTAL_CLK                  40000000
 
+#define UART_PRINT                              Report
 
 //*****************************************************************************
 //    CC3200 does not have a true RTC capability. However, API(s) in this file

@@ -72,6 +72,11 @@
 			<locationURI>PARENT-1-PROJECT_LOC/MQTTPacket/src/MQTTUnsubscribeServer.c</locationURI>
 		</link>
 		<link>
+			<name>adc_func.c</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/Includes/adc_lib/adc_func.c</locationURI>
+		</link>
+		<link>
 			<name>gpio_if.c</name>
 			<type>1</type>
 			<locationURI>PARENT-7-PROJECT_LOC/ti/CC3200SDK/cc3200-sdk/example/common/gpio_if.c</locationURI>
