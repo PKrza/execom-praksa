@@ -449,7 +449,7 @@ void MainTask(void *pvParameters)
 	char battery = 0;
 	int brojac = 0;
 	char count=0;
-	signed char status;
+	signed char status = 0;
 
 	g_usTimerInts = 0;
 
@@ -464,9 +464,9 @@ void MainTask(void *pvParameters)
     conect_to_AP();
 
 	// subscribe to config/016
-
+//    status = sl_Listen(iSockID, 200);
 	status = Subscribe_MQTT();
-
+//	status = sl_Listen(iSockID, 200);
     while(1)
     {
 		//Timer_IF_Start(TIMERA0_BASE, TIMER_A, (PERIODIC_TEST_CYCLES*5));
@@ -494,6 +494,7 @@ void MainTask(void *pvParameters)
 				AESCrypt(AES_CFG_DIR_ENCRYPT, messageToBeCrypted, cryptedMessage);
 
 				crypt_flag = 0;
+
 			}
 		}
 
@@ -517,7 +518,7 @@ void MainTask(void *pvParameters)
 				}
 
 				status = Send_MQTT(cryptedMessage);
-				if(status < 0 || count > 4)
+				if(status < 0 || count > 5)
 				{
 					//TimerDisable(TIMERA0_BASE, TIMER_A);
 					TimerLoadSet(TIMERA0_BASE, TIMER_A, (PERIODIC_TEST_CYCLES * 10));
@@ -527,15 +528,22 @@ void MainTask(void *pvParameters)
 					while(status < 0)
 					{
 						conect_to_AP();
+						MQTT_payload_string(messageToBeCrypted,Temp, battery);
+						AESCrypt(AES_CFG_DIR_ENCRYPT, messageToBeCrypted, cryptedMessage);
 						status = Subscribe_MQTT();
 					}
-					MQTT_payload_string(messageToBeCrypted,Temp, battery);
-					AESCrypt(AES_CFG_DIR_ENCRYPT, messageToBeCrypted, cryptedMessage);
 					status = Send_MQTT(cryptedMessage);
 					count = 0;
 					pingSent = 0;
 				}
-				if(!status)
+				else
+/*
+					status = sl_Listen(iSockID, 200);
+					if(status < 0)
+						UART_PRINT("Konekcija ne postoji\r\n");
+					else
+						UART_PRINT("Konekcija je odrzana\r\n");
+*/
 					status = receivePublish();
 			} while(status < 0 || messageLength < 27 || messageLength > 29);
 
@@ -601,15 +609,8 @@ signed char Subscribe_MQTT(void)
 	data.cleansession = 1;
 	data.MQTTVersion = 3;
 
-	struct timeval tv;
-	tv.tv_sec = 150;  /* 1 second Timeout */
-	tv.tv_usec = 0; //500000; // half a secund
-
-	SlSockKeepalive_t enableOption;// = 1UL;
-	enableOption.KeepaliveEnabled = 1;
-
 		// creating a TCP socket
-		iSockID = sl_Socket(SL_AF_INET,SL_SOCK_STREAM, 0);
+		iSockID = sl_Socket(SL_AF_INET,SL_SOCK_STREAM, IPPROTO_TCP);
 		if( iSockID < 0 )
 		{
 		// error
@@ -617,12 +618,18 @@ signed char Subscribe_MQTT(void)
 			return -1;
 		}
 
-		sl_SetSockOpt(iSockID, SOL_SOCKET,SL_SO_KEEPALIVE, &enableOption, sizeof(enableOption));
+		SlSockKeepalive_t KAenableOption;// = 1UL;
+		KAenableOption.KeepaliveEnabled = 1;
+		len = sl_SetSockOpt(iSockID, SOL_SOCKET,SL_SO_KEEPALIVE, &KAenableOption, sizeof(KAenableOption));
 
-		tv.tv_sec = 1;  /* 1 second Timeout */
-		tv.tv_usec = 0; //500000; // half a secund
-
+		struct SlTimeval_t tv;
+		tv.tv_sec = 0;  /* 1 second Timeout */
+		tv.tv_usec = 500000; // half a second
 		sl_SetSockOpt(iSockID, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv,sizeof(struct timeval));
+
+		SlSockNonblocking_t NBenableOption;
+		NBenableOption.NonblockingEnabled = 0;
+		sl_SetSockOpt(iSockID,SOL_SOCKET,SL_SO_NONBLOCKING, &NBenableOption,sizeof(NBenableOption));
 
 		// connecting to TCP server
 		iStatus = sl_Connect(iSockID, ( SlSockAddr_t *)&sAddr, iAddrSize);
@@ -724,8 +731,10 @@ signed char Send_MQTT(char *message)
 		return -1;
 	}
 */
-	// connecting to TCP server
+	// form a publish message
+	len = MQTTSerialize_publish(buf, buflen, 0, 0, 0, 0, topicString, (unsigned char *)message, payloadlen);
 
+	// connecting to TCP server
 	iStatus = sl_Connect(iSockID, ( SlSockAddr_t *)&sAddr, iAddrSize);
 	if( iStatus < 0 )
 	{
@@ -735,8 +744,6 @@ signed char Send_MQTT(char *message)
 		return -1;
 	}
 
-	// form a publish message
-	len = MQTTSerialize_publish(buf, buflen, 0, 0, 0, 0, topicString, (unsigned char *)message, payloadlen);
 	iStatus = sl_Send(iSockID, buf, len, 0);
 	//iStatus =  sl_SendTo(iSockID, buf, len, 0, ( SlSockAddr_t *)&sAddr, iAddrSize);
 	  if( iStatus < 0 )
