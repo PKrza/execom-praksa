@@ -86,8 +86,8 @@
 #define COMP_IP				0x0a000008 // computers IP adres (for testing virtual broker)
 #define WOLKABOUT_IP		0x25fc7d5a // 37.252.125.90
 #define PORT_NUM            1883	   // port number
-#define SUBSCRIBE_TOPIC		"config/016"
-#define PUBLISH_TOPIC		"sensors/016"
+#define SUBSCRIBE_TOPIC		"config/014"
+#define PUBLISH_TOPIC		"sensors/014"
 
 // AES key and initialization vector
 char Key[16] = "no-preshared-key";
@@ -109,10 +109,12 @@ int buflen = sizeof(buf);
 
 char iSocketDesc;
 char interupt_flag = 1;
+char crypt_flag = 1;
 int heartbeat = 1;
 long server_rtc = 0;
 char messageLength = 0;
 int pingSent = 0;
+char ResetTimerCount = 0;
 
 int iAddrSize = sizeof(SlSockAddrIn_t);
 SlSockAddrIn_t  sAddr;
@@ -159,6 +161,8 @@ void AESInit(void);
 int getdata(unsigned char* buf, int count);
 signed char Subscribe_MQTT(void);
 signed char receivePublish(void);
+void ResetHandler(void);
+//static void MainTask(void);
 
 
 int getdata(unsigned char* buf, int count)
@@ -172,6 +176,16 @@ signed char receivePublish(void)
 	//int iStatus;
 	char *ptr = recievedFromServer;
 	signed char rc = -1;
+	signed char iStatus;
+
+	iStatus = sl_Connect(iSockID, ( SlSockAddr_t *)&sAddr, iAddrSize);
+	if( iStatus < 0 )
+	{
+	// error
+		sl_Close(iSockID);
+		UART_PRINT("Unable to connect to TCP server\r\n");
+		return -1;
+	}
 
 	memcpy(buf, 0, buflen);
 
@@ -213,6 +227,7 @@ signed char receivePublish(void)
 			//} while(heartbeat > 600 || server_rtc < 4000000);
 			rc = 0;
 		}
+	crypt_flag = 1;
 	return rc;
 }
 
@@ -329,12 +344,16 @@ TimerPeriodicIntHandler(void)
     TimerIntClear(TIMERA0_BASE, ulInts);
 
     g_usTimerInts++;
-    if(g_usTimerInts == 12)//*heartbeat)
+    if(g_usTimerInts == 5)
+    	crypt_flag = 1;
+
+    if(g_usTimerInts == 6)//*heartbeat)
     {
-    	g_usTimerInts = 0;
     	interupt_flag = 1;
     }
 
+    if(g_usTimerInts == 18)
+		PRCMSOCReset();
 }
 
 //****************************************************************************
@@ -378,6 +397,12 @@ void LedTimerDeinitStop()
 
 }
 
+void ResetHandler(void)
+{
+	ResetTimerCount++;
+	if(ResetTimerCount == 10);
+		PRCMSOCReset();
+}
 //*******************************************************************
 //
 //	brief 	Push Button Task - postavlja fleg interupt_flag na 1
@@ -401,6 +426,7 @@ void PushButtonHandler(void)
 		GPIOIntDisable(GPIOA1_BASE, 0x20);
 		DBG_PRINT("\nTaster pritisnut\n\r");
 		interupt_flag = 1;
+		//PRCMSOCReset();
 	}
 }
 
@@ -414,8 +440,10 @@ void PushButtonHandler(void)
 //
 //*******************************************************************
 
-static void MainTask(void *pvParameters)
+static
+void MainTask(void *pvParameters)
 {
+
 	float temp_raw;
 	int Temp = 0;
 	char battery = 0;
@@ -425,19 +453,19 @@ static void MainTask(void *pvParameters)
 
 	g_usTimerInts = 0;
 
+	TMP006DrvGetTemp(&temp_raw);
+	Temp = (int)(temp_raw*10);
+	battery =  batteryVoltage();
+
+	TimerLoadSet(TIMERA0_BASE, TIMER_BOTH, (PERIODIC_TEST_CYCLES * 10));
+	TimerEnable(TIMERA0_BASE,TIMER_A);
+
 	// connect to access point
     conect_to_AP();
 
-    // start the timer
-	TimerLoadSet(TIMERA0_BASE, TIMER_A, (PERIODIC_TEST_CYCLES * 5));
-	TimerEnable(TIMERA0_BASE,TIMER_A);
-
 	// subscribe to config/016
-	do
-	{
-		status = Subscribe_MQTT();
-	}while(status < 0);
 
+	status = Subscribe_MQTT();
 
     while(1)
     {
@@ -446,18 +474,14 @@ static void MainTask(void *pvParameters)
 		GPIOIntEnable(GPIOA1_BASE, 0x20);
 		while(!interupt_flag)
 		{
-		}
-
-			//Timer_IF_Stop(TIMERA0_BASE, TIMER_A);
-			TMP006DrvGetTemp(&temp_raw);
-			Temp = (int)(temp_raw*10);
-
-			battery =  batteryVoltage();
-			UART_PRINT("Battery: %d\r\n", battery);
-
-			do
+			if(crypt_flag)
 			{
-				count++;
+				TMP006DrvGetTemp(&temp_raw);
+				Temp = (int)(temp_raw*10);
+
+				battery =  batteryVoltage();
+				UART_PRINT("Battery: %d\r\n", battery);
+
 				if(!pingSent)
 					MQTT_payload_string(messageToBeCrypted,Temp, battery);
 
@@ -467,16 +491,47 @@ static void MainTask(void *pvParameters)
 					strcpy(messageToBeCrypted, "RTC 0000000000;");
 				}
 
-				UART_PRINT("Usao u do while\r\n");
 				AESCrypt(AES_CFG_DIR_ENCRYPT, messageToBeCrypted, cryptedMessage);
-				status = Send_MQTT(cryptedMessage);
-				if(status < 0 || count > 10)
+
+				crypt_flag = 0;
+			}
+		}
+
+			//Timer_IF_Stop(TIMERA0_BASE, TIMER_A);
+			do
+			{
+				count++;
+				if(crypt_flag)
 				{
-					TimerDisable(TIMERA0_BASE, TIMER_A);
-					conect_to_AP();
-					status = Subscribe_MQTT();
-					TimerLoadSet(TIMERA0_BASE, TIMER_A, (PERIODIC_TEST_CYCLES * 5));
+					if(!pingSent)
+						MQTT_payload_string(messageToBeCrypted,Temp, battery);
+
+					else
+					{
+						memset(messageToBeCrypted, 0x00, MAX_BUFF_SIZE);
+						strcpy(messageToBeCrypted, "RTC 0000000000;");
+					}
+
+					UART_PRINT("Usao u do while\r\n");
+					AESCrypt(AES_CFG_DIR_ENCRYPT, messageToBeCrypted, cryptedMessage);
+				}
+
+				status = Send_MQTT(cryptedMessage);
+				if(status < 0 || count > 4)
+				{
+					//TimerDisable(TIMERA0_BASE, TIMER_A);
+					TimerLoadSet(TIMERA0_BASE, TIMER_A, (PERIODIC_TEST_CYCLES * 10));
 					TimerEnable(TIMERA0_BASE,TIMER_A);
+					//conect_to_AP();
+					status = Subscribe_MQTT();
+					while(status < 0)
+					{
+						conect_to_AP();
+						status = Subscribe_MQTT();
+					}
+					MQTT_payload_string(messageToBeCrypted,Temp, battery);
+					AESCrypt(AES_CFG_DIR_ENCRYPT, messageToBeCrypted, cryptedMessage);
+					status = Send_MQTT(cryptedMessage);
 					count = 0;
 					pingSent = 0;
 				}
@@ -495,7 +550,9 @@ static void MainTask(void *pvParameters)
 
 			pingSent--;
 			interupt_flag = 0;
-			//GPIOIntEnable(GPIOA1_BASE, 0x20);
+			crypt_flag = 0;
+	    	g_usTimerInts = 0;
+			GPIOIntEnable(GPIOA1_BASE, 0x20);
 	}
 }
 
@@ -540,13 +597,16 @@ signed char Subscribe_MQTT(void)
 
 	//filling the data for needed for MQTT
 	data.clientID.cstring = "PKrzaID";
-	data.keepAliveInterval = 90;
+	data.keepAliveInterval = 60;
 	data.cleansession = 1;
 	data.MQTTVersion = 3;
 
 	struct timeval tv;
-	tv.tv_sec = 1;  /* 1 second Timeout */
+	tv.tv_sec = 150;  /* 1 second Timeout */
 	tv.tv_usec = 0; //500000; // half a secund
+
+	SlSockKeepalive_t enableOption;// = 1UL;
+	enableOption.KeepaliveEnabled = 1;
 
 		// creating a TCP socket
 		iSockID = sl_Socket(SL_AF_INET,SL_SOCK_STREAM, 0);
@@ -556,6 +616,11 @@ signed char Subscribe_MQTT(void)
 			UART_PRINT("Unable to create a TCP socket\r\n");
 			return -1;
 		}
+
+		sl_SetSockOpt(iSockID, SOL_SOCKET,SL_SO_KEEPALIVE, &enableOption, sizeof(enableOption));
+
+		tv.tv_sec = 1;  /* 1 second Timeout */
+		tv.tv_usec = 0; //500000; // half a secund
 
 		sl_SetSockOpt(iSockID, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv,sizeof(struct timeval));
 
@@ -660,6 +725,7 @@ signed char Send_MQTT(char *message)
 	}
 */
 	// connecting to TCP server
+
 	iStatus = sl_Connect(iSockID, ( SlSockAddr_t *)&sAddr, iAddrSize);
 	if( iStatus < 0 )
 	{
@@ -734,7 +800,7 @@ void conect_to_AP(void)
 	// Start the driver
 	//
 	Network_IF_InitDriver(ROLE_STA);
-	GPIO_IF_LedOn(MCU_GREEN_LED_GPIO);
+	GPIO_IF_LedOff(MCU_GREEN_LED_GPIO);
 
 	//
 	// Configure Timer for blinking the LED for IP acquisition
@@ -761,7 +827,7 @@ void conect_to_AP(void)
 	//
 	//LedTimerDeinitStop();
 
-	GPIO_IF_LedOn(MCU_IP_ALLOC_IND);
+	GPIO_IF_LedOff(MCU_IP_ALLOC_IND);
 }
 
 //*****************************************************************************
@@ -910,70 +976,77 @@ void MQTT_payload_string(char * buff_ptr, int temperature, char battery)
 void main()
 {
 
-  BoardInit();
+	BoardInit();
 
-  //
-  // Pinmuxing for GPIO,UART
-  //
-  PinMuxConfig();
-  GPIOIntRegister(GPIOA1_BASE, PushButtonHandler);
+	//
+	// Pinmuxing for GPIO,UART
+	//
+	PinMuxConfig();
+	GPIOIntRegister(GPIOA1_BASE, PushButtonHandler);
 
-  // Set up the timer
-  PRCMPeripheralReset(PRCM_TIMERA0);
-  TimerConfigure(TIMERA0_BASE, TIMER_A);
-  TimerPrescaleSet(TIMERA0_BASE, TIMER_A, 0);
-  TimerIntRegister(TIMERA0_BASE, TIMER_A, TimerPeriodicIntHandler);
-  TimerLoadSet(TIMERA0_BASE, TIMER_A, (PERIODIC_TEST_CYCLES * 5));
+	// Set up the timer
+	PRCMPeripheralReset(PRCM_TIMERA0);
+	TimerConfigure(TIMERA0_BASE, TIMER_CFG_PERIODIC);
+	TimerPrescaleSet(TIMERA0_BASE, TIMER_A, 0);
+	TimerIntRegister(TIMERA0_BASE, TIMER_A, TimerPeriodicIntHandler);
+/*
+	PRCMPeripheralReset(PRCM_TIMERA1);
+	TimerConfigure(TIMERA1_BASE, TIMER_CFG_PERIODIC);
+	TimerPrescaleSet(TIMERA1_BASE, TIMER_A, 0);
+	TimerIntRegister(TIMERA1_BASE, TIMER_A, ResetHandler);
+	TimerLoadSet(TIMERA1_BASE, TIMER_A, (PERIODIC_TEST_CYCLES * 10));
+	TimerEnable(TIMERA1_BASE,TIMER_A);
+*/
+	//AESInit();
+	LedTimerConfigNStart();
+	//UDMAInit();
+	//
+	// configure LEDs
+	//
+	GPIO_IF_LedConfigure(LED1|LED2|LED3);
 
+	GPIO_IF_LedOff(MCU_ALL_LED_IND);
 
-  //AESInit();
-  LedTimerConfigNStart();
-  //UDMAInit();
-  //
-  // configure LEDs
-  //
-  GPIO_IF_LedConfigure(LED1|LED2|LED3);
-
-  GPIO_IF_LedOff(MCU_ALL_LED_IND);
-
-  AESIntRegister(AES_BASE, AESIntHandler);
+	AESIntRegister(AES_BASE, AESIntHandler);
 
 
 #ifndef NOTERM  
-  //
-  // Configuring UART
-  //
-  InitTerm();
+	//
+	// Configuring UART
+	//
+	InitTerm();
 #endif
 
-  // Initialize I2C drivers & temperature sensor
+	// Initialize I2C drivers & temperature sensor
 
-  I2C_IF_Open(I2C_MASTER_MODE_FST);
-  TMP006DrvOpen();
-  initADC();
-  //
-  // Display Welcome Message
-  //
-  DisplayBanner(APP_NAME);
+	I2C_IF_Open(I2C_MASTER_MODE_FST);
+	TMP006DrvOpen();
+	initADC();
+	//
+	// Display Welcome Message
+	//
+	DisplayBanner(APP_NAME);
 
-  // Initialize AP security params
-  //SecurityParams.Key = SECURITY_KEY;
-  //SecurityParams.KeyLen = strlen(SECURITY_KEY);
-  //SecurityParams.Type = SECURITY_TYPE;
-  
-  //
-  // Simplelinkspawntask
-  //
-  VStartSimpleLinkSpawnTask(SPAWN_TASK_PRIORITY);
+	// Initialize AP security params
+	//SecurityParams.Key = SECURITY_KEY;
+	//SecurityParams.KeyLen = strlen(SECURITY_KEY);
+	//SecurityParams.Type = SECURITY_TYPE;
 
-  osi_TaskCreate(MainTask, (signed char*)"Main Task", OSI_STACK_SIZE, NULL, 1, NULL );
+	//
+	// Simplelinkspawntask
+	//
+	VStartSimpleLinkSpawnTask(SPAWN_TASK_PRIORITY);
 
-  osi_start();
+	osi_TaskCreate(MainTask, (signed char*)"Main Task", OSI_STACK_SIZE, NULL, 1, NULL );
 
-  while(1)
-  {
+	osi_start();
+	//conect_to_AP();
+	//MainTask();
 
-  }
+	while(1)
+	{
+
+	}
 
 }
         
