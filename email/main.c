@@ -1010,9 +1010,9 @@ void main()
 	//
 	// configure LEDs
 	//
-	GPIO_IF_LedConfigure(LED1|LED2|LED3);
+	//GPIO_IF_LedConfigure(LED1|LED2|LED3);
 
-	GPIO_IF_LedOff(MCU_ALL_LED_IND);
+	//GPIO_IF_LedOff(MCU_ALL_LED_IND);
 
 	AESIntRegister(AES_BASE, AESIntHandler);
 
@@ -1033,7 +1033,7 @@ void main()
 	// Display Welcome Message
 	//
 	DisplayBanner(APP_NAME);
-
+	//conect_to_AP();
 	// Initialize AP security params
 	//SecurityParams.Key = SECURITY_KEY;
 	//SecurityParams.KeyLen = strlen(SECURITY_KEY);
