@@ -345,15 +345,15 @@ TimerPeriodicIntHandler(void)
     TimerIntClear(TIMERA0_BASE, ulInts);
 
     g_usTimerInts++;
-    if(g_usTimerInts == 5)
+    if(g_usTimerInts == (6*heartbeat)-1 )
     	crypt_flag = 1;
 
-    if(g_usTimerInts == 6)//*heartbeat)
+    if(g_usTimerInts == (6*heartbeat) )
     {
     	interupt_flag = 1;
     }
 
-    if(g_usTimerInts == 12)
+    if(g_usTimerInts == (6*2*heartbeat))
 		PRCMSOCReset();
 }
 
@@ -555,14 +555,15 @@ void MainTask(void *pvParameters)
 
 			count = 0;
 			messageLength = 0;
-			brojac++;
+			brojac+=heartbeat;
 			UART_PRINT("%d) Message <%s> sent successfuly\r\n", brojac, messageToBeCrypted);
 			UART_PRINT("Server RTC: %d\r\nServer HEARTBEAT: %d\r\n", server_rtc, heartbeat);
 
 			if(!pingSent)
 				pingSent = heartbeat;
 
-			pingSent--;
+			//pingSent--;
+			pingSent = 0;
 			interupt_flag = 0;
 			crypt_flag = 0;
 	    	g_usTimerInts = 0;
@@ -1067,5 +1068,3 @@ void main()
 	}
 
 }
-        
-       
