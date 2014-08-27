@@ -85,6 +85,7 @@
 
 #define COMP_IP				0x0a000008 // computers IP adres (for testing virtual broker)
 #define WOLKABOUT_IP		0x25fc7d5a // 37.252.125.90
+#define PROBNI_IP			0x68288c3f // 104.40.140.63
 #define PORT_NUM            1883	   // port number
 #define SUBSCRIBE_TOPIC		"config/014"
 #define PUBLISH_TOPIC		"sensors/014"
@@ -352,7 +353,7 @@ TimerPeriodicIntHandler(void)
     	interupt_flag = 1;
     }
 
-    if(g_usTimerInts == 18)
+    if(g_usTimerInts == 12)
 		PRCMSOCReset();
 }
 
@@ -461,11 +462,14 @@ void MainTask(void *pvParameters)
 	TimerEnable(TIMERA0_BASE,TIMER_A);
 
 	// connect to access point
-    conect_to_AP();
+	do
+	{
+		conect_to_AP();
 
 	// subscribe to config/016
 //    status = sl_Listen(iSockID, 200);
-	status = Subscribe_MQTT();
+		status = Subscribe_MQTT();
+	}while(status < 0);
 //	status = sl_Listen(iSockID, 200);
     while(1)
     {
@@ -527,6 +531,7 @@ void MainTask(void *pvParameters)
 					status = Subscribe_MQTT();
 					while(status < 0)
 					{
+						sl_Close(iSockID);
 						conect_to_AP();
 						MQTT_payload_string(messageToBeCrypted,Temp, battery);
 						AESCrypt(AES_CFG_DIR_ENCRYPT, messageToBeCrypted, cryptedMessage);
@@ -546,6 +551,7 @@ void MainTask(void *pvParameters)
 */
 					status = receivePublish();
 			} while(status < 0 || messageLength < 27 || messageLength > 29);
+    		//} while(status < 0 || messageLength < 13 || messageLength > 17);
 
 			count = 0;
 			messageLength = 0;
@@ -623,7 +629,7 @@ signed char Subscribe_MQTT(void)
 		len = sl_SetSockOpt(iSockID, SOL_SOCKET,SL_SO_KEEPALIVE, &KAenableOption, sizeof(KAenableOption));
 
 		struct SlTimeval_t tv;
-		tv.tv_sec = 0;  /* 1 second Timeout */
+		tv.tv_sec = 0;  // 1 second Timeout
 		tv.tv_usec = 500000; // half a second
 		sl_SetSockOpt(iSockID, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv,sizeof(struct timeval));
 
@@ -721,19 +727,24 @@ signed char Send_MQTT(char *message)
 	int payloadlen = strlen(message);
 	int len = 0;
 	int iStatus;
-/*
-	// creating a TCP socket
-	iSockID = sl_Socket(SL_AF_INET,SL_SOCK_STREAM, 0);
-	if( iSockID < 0 )
-	{
-	// error
-		UART_PRINT("Unable to create a TCP socket\r\n");
-		return -1;
-	}
-*/
+
+
 	// form a publish message
 	len = MQTTSerialize_publish(buf, buflen, 0, 0, 0, 0, topicString, (unsigned char *)message, payloadlen);
+/*
+	SlSockKeepalive_t KAenableOption;// = 1UL;
+	KAenableOption.KeepaliveEnabled = 1;
+	len = sl_SetSockOpt(iSockID, SOL_SOCKET,SL_SO_KEEPALIVE, &KAenableOption, sizeof(KAenableOption));
 
+	struct SlTimeval_t tv;
+	tv.tv_sec = 0;   //1 second Timeout
+	tv.tv_usec = 500000; // half a second
+	sl_SetSockOpt(iSockID, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv,sizeof(struct timeval));
+
+	SlSockNonblocking_t NBenableOption;
+	NBenableOption.NonblockingEnabled = 0;
+	sl_SetSockOpt(iSockID,SOL_SOCKET,SL_SO_NONBLOCKING, &NBenableOption,sizeof(NBenableOption));
+*/
 	// connecting to TCP server
 	iStatus = sl_Connect(iSockID, ( SlSockAddr_t *)&sAddr, iAddrSize);
 	if( iStatus < 0 )
