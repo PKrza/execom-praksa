@@ -45,7 +45,8 @@
 #include "timer.h"
 #include "i2c_if.h"
 #include "tmp006drv.h"
-
+#include "wdt.h"
+#include "wdt_if.h"
 
 // common interface includes
 
@@ -111,7 +112,7 @@ int buflen = sizeof(buf);
 char iSocketDesc;
 char interupt_flag = 1;
 char crypt_flag = 1;
-int heartbeat = 1;
+int heartbeat = 10;
 long server_rtc = 0;
 char messageLength = 0;
 int pingSent = 0;
@@ -126,7 +127,7 @@ int iSockID;
 //*****************************************************************************
 // Variable used in Timer Interrupt Handler
 //*****************************************************************************
-unsigned char g_usTimerInts;
+int g_usTimerInts;
 //*****************************************************************************
 // global variables (UART Buffer, Email Task, Queues Parameters)
 //*****************************************************************************
@@ -462,15 +463,12 @@ void MainTask(void *pvParameters)
 	TimerEnable(TIMERA0_BASE,TIMER_A);
 
 	// connect to access point
-	do
-	{
+	//do
+	//{
 		conect_to_AP();
+		//status = Subscribe_MQTT();
+	//}while(status < 0);
 
-	// subscribe to config/016
-//    status = sl_Listen(iSockID, 200);
-		status = Subscribe_MQTT();
-	}while(status < 0);
-//	status = sl_Listen(iSockID, 200);
     while(1)
     {
 		//Timer_IF_Start(TIMERA0_BASE, TIMER_A, (PERIODIC_TEST_CYCLES*5));
@@ -498,7 +496,6 @@ void MainTask(void *pvParameters)
 				AESCrypt(AES_CFG_DIR_ENCRYPT, messageToBeCrypted, cryptedMessage);
 
 				crypt_flag = 0;
-
 			}
 		}
 
@@ -521,12 +518,25 @@ void MainTask(void *pvParameters)
 					AESCrypt(AES_CFG_DIR_ENCRYPT, messageToBeCrypted, cryptedMessage);
 				}
 
+				if(heartbeat > 1)
+				{
+					status = Subscribe_MQTT();
+					while(status < 0)
+					{
+						sl_Close(iSockID);
+						conect_to_AP();
+						MQTT_payload_string(messageToBeCrypted,Temp, battery);
+						AESCrypt(AES_CFG_DIR_ENCRYPT, messageToBeCrypted, cryptedMessage);
+						status = Subscribe_MQTT();
+					}
+				}
+
 				status = Send_MQTT(cryptedMessage);
 				if(status < 0 || count > 5)
 				{
 					//TimerDisable(TIMERA0_BASE, TIMER_A);
-					TimerLoadSet(TIMERA0_BASE, TIMER_A, (PERIODIC_TEST_CYCLES * 10));
-					TimerEnable(TIMERA0_BASE,TIMER_A);
+//					TimerLoadSet(TIMERA0_BASE, TIMER_A, (PERIODIC_TEST_CYCLES * 10));
+//					TimerEnable(TIMERA0_BASE,TIMER_A);
 					//conect_to_AP();
 					status = Subscribe_MQTT();
 					while(status < 0)
@@ -542,13 +552,6 @@ void MainTask(void *pvParameters)
 					pingSent = 0;
 				}
 				else
-/*
-					status = sl_Listen(iSockID, 200);
-					if(status < 0)
-						UART_PRINT("Konekcija ne postoji\r\n");
-					else
-						UART_PRINT("Konekcija je odrzana\r\n");
-*/
 					status = receivePublish();
 			} while(status < 0 || messageLength < 27 || messageLength > 29);
     		//} while(status < 0 || messageLength < 13 || messageLength > 17);
@@ -994,6 +997,7 @@ void MQTT_payload_string(char * buff_ptr, int temperature, char battery)
 
 void main()
 {
+	tBoolean bRetcode;
 
 	BoardInit();
 
@@ -1008,6 +1012,20 @@ void main()
 	TimerConfigure(TIMERA0_BASE, TIMER_CFG_PERIODIC);
 	TimerPrescaleSet(TIMERA0_BASE, TIMER_A, 0);
 	TimerIntRegister(TIMERA0_BASE, TIMER_A, TimerPeriodicIntHandler);
+
+
+/*
+	PRCMPeripheralClkEnable(PRCM_WDT, PRCM_RUN_MODE_CLK);
+	//WatchdogUnlock(WDT_BASE);
+	WatchdogUnlock(WDT_BASE);
+	WatchdogIntRegister(WDT_BASE,TimerPeriodicIntHandler);
+	WatchdogIntEnable(WDT_BASE);
+	WatchdogStallEnable(WDT_BASE);
+	WatchdogReloadSet(WDT_BASE, (PERIODIC_TEST_CYCLES * 10));
+	WatchdogEnable(WDT_BASE);
+	bRetcode = WatchdogRunning(WDT_BASE);
+*/
+
 /*
 	PRCMPeripheralReset(PRCM_TIMERA1);
 	TimerConfigure(TIMERA1_BASE, TIMER_CFG_PERIODIC);
@@ -1017,7 +1035,11 @@ void main()
 	TimerEnable(TIMERA1_BASE,TIMER_A);
 */
 	//AESInit();
+
+
 	LedTimerConfigNStart();
+
+
 	//UDMAInit();
 	//
 	// configure LEDs

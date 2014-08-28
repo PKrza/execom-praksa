@@ -24,7 +24,8 @@ C:/ti/CC3200SDK/cc3200-sdk/example/common/network_if.c \
 C:/Users/pkrza/GIT/execom_praksa/execom-praksa/email/pinmux.c \
 C:/ti/CC3200SDK/cc3200-sdk/example/common/timer_if.c \
 C:/ti/CC3200SDK/cc3200-sdk/example/out_of_box/tmp006drv.c \
-C:/ti/CC3200SDK/cc3200-sdk/example/common/uart_if.c 
+C:/ti/CC3200SDK/cc3200-sdk/example/common/uart_if.c \
+C:/ti/CC3200SDK/cc3200-sdk/example/common/wdt_if.c 
 
 OBJS += \
 ./MQTTConnectClient.obj \
@@ -44,7 +45,8 @@ OBJS += \
 ./pinmux.obj \
 ./timer_if.obj \
 ./tmp006drv.obj \
-./uart_if.obj 
+./uart_if.obj \
+./wdt_if.obj 
 
 C_DEPS += \
 ./MQTTConnectClient.pp \
@@ -64,7 +66,8 @@ C_DEPS += \
 ./pinmux.pp \
 ./timer_if.pp \
 ./tmp006drv.pp \
-./uart_if.pp 
+./uart_if.pp \
+./wdt_if.pp 
 
 C_DEPS__QUOTED += \
 "MQTTConnectClient.pp" \
@@ -84,7 +87,8 @@ C_DEPS__QUOTED += \
 "pinmux.pp" \
 "timer_if.pp" \
 "tmp006drv.pp" \
-"uart_if.pp" 
+"uart_if.pp" \
+"wdt_if.pp" 
 
 OBJS__QUOTED += \
 "MQTTConnectClient.obj" \
@@ -104,7 +108,8 @@ OBJS__QUOTED += \
 "pinmux.obj" \
 "timer_if.obj" \
 "tmp006drv.obj" \
-"uart_if.obj" 
+"uart_if.obj" \
+"wdt_if.obj" 
 
 C_SRCS__QUOTED += \
 "C:/Users/pkrza/GIT/execom_praksa/execom-praksa/email/MQTTPacket/src/MQTTConnectClient.c" \
@@ -124,6 +129,7 @@ C_SRCS__QUOTED += \
 "C:/Users/pkrza/GIT/execom_praksa/execom-praksa/email/pinmux.c" \
 "C:/ti/CC3200SDK/cc3200-sdk/example/common/timer_if.c" \
 "C:/ti/CC3200SDK/cc3200-sdk/example/out_of_box/tmp006drv.c" \
-"C:/ti/CC3200SDK/cc3200-sdk/example/common/uart_if.c" 
+"C:/ti/CC3200SDK/cc3200-sdk/example/common/uart_if.c" \
+"C:/ti/CC3200SDK/cc3200-sdk/example/common/wdt_if.c" 
 
 
