@@ -29,9 +29,8 @@ $(GEN_CMDS__FLAG) \
 "./MQTTConnectClient.obj" \
 "../cc3200v1p32.cmd" \
 -l"libc.a" \
+-l"C:\ti\CC3200SDK\cc3200-sdk\simplelink\ccs\OS\simplelink.a" \
 -l"C:\ti\CC3200SDK\cc3200-sdk\oslib\ccs\ti_rtos\ti_rtos.a" \
--l"C:\ti\CC3200SDK\cc3200-sdk\oslib\ccs\ti_rtos\ti_rtos.a" \
--l"C:\ti\CC3200SDK\cc3200-sdk\simplelink\ccs\NON_OS\simplelink.a" \
 -l"C:\ti\CC3200SDK\cc3200-sdk\driverlib\ccs\Release\driverlib.a" \
 -l"C:/Users/pkrza/GIT/execom_praksa/execom-praksa/email/ccs\..\lib\ccs\Release\libEmail.a" \
 

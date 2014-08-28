@@ -88,8 +88,8 @@
 #define WOLKABOUT_IP		0x25fc7d5a // 37.252.125.90
 #define PROBNI_IP			0x68288c3f // 104.40.140.63
 #define PORT_NUM            1883	   // port number
-#define SUBSCRIBE_TOPIC		"config/014"
-#define PUBLISH_TOPIC		"sensors/014"
+#define SUBSCRIBE_TOPIC		"config/017"
+#define PUBLISH_TOPIC		"sensors/017"
 
 // AES key and initialization vector
 char Key[16] = "no-preshared-key";
@@ -341,9 +341,12 @@ void AESCrypt(long direction, char *sourceBuff, char *resultBuff)
 void
 TimerPeriodicIntHandler(void)
 {
+/*
     unsigned long ulInts;
     ulInts = TimerIntStatus(TIMERA0_BASE, true);
     TimerIntClear(TIMERA0_BASE, ulInts);
+*/
+    WatchdogIntClear(WDT_BASE);
 
     g_usTimerInts++;
     if(g_usTimerInts == (6*heartbeat)-1 )
@@ -518,7 +521,7 @@ void MainTask(void *pvParameters)
 					AESCrypt(AES_CFG_DIR_ENCRYPT, messageToBeCrypted, cryptedMessage);
 				}
 
-				if(heartbeat > 1)
+				if(heartbeat > 1 && !crypt_flag)
 				{
 					status = Subscribe_MQTT();
 					while(status < 0)
@@ -786,19 +789,19 @@ signed char Send_MQTT(char *message)
 static void
 BoardInit(void)
 {
-// In case of TI-RTOS vector table is initialize by OS itself
+/* In case of TI-RTOS vector table is initialize by OS itself */
 #ifndef USE_TIRTOS
-    //
-    // Set vector table base
-    //
+   //
+   // Set vector table base
+   //
 #if defined(ccs)
-    IntVTableBaseSet((unsigned long)&g_pfnVectors[0]);
+   MAP_IntVTableBaseSet((unsigned long)&g_pfnVectors[0]);
 #endif
 #if defined(ewarm)
-    IntVTableBaseSet((unsigned long)&__vector_table);
+   MAP_IntVTableBaseSet((unsigned long)&__vector_table);
 #endif
 #endif
-    //
+
     // Enable Processor
     //
     IntMasterEnable();
@@ -1007,14 +1010,15 @@ void main()
 	PinMuxConfig();
 	GPIOIntRegister(GPIOA1_BASE, PushButtonHandler);
 
+/*
 	// Set up the timer
 	PRCMPeripheralReset(PRCM_TIMERA0);
 	TimerConfigure(TIMERA0_BASE, TIMER_CFG_PERIODIC);
 	TimerPrescaleSet(TIMERA0_BASE, TIMER_A, 0);
 	TimerIntRegister(TIMERA0_BASE, TIMER_A, TimerPeriodicIntHandler);
+*/
 
 
-/*
 	PRCMPeripheralClkEnable(PRCM_WDT, PRCM_RUN_MODE_CLK);
 	//WatchdogUnlock(WDT_BASE);
 	WatchdogUnlock(WDT_BASE);
@@ -1023,8 +1027,8 @@ void main()
 	WatchdogStallEnable(WDT_BASE);
 	WatchdogReloadSet(WDT_BASE, (PERIODIC_TEST_CYCLES * 10));
 	WatchdogEnable(WDT_BASE);
-	bRetcode = WatchdogRunning(WDT_BASE);
-*/
+	//bRetcode = WatchdogRunning(WDT_BASE);
+
 
 /*
 	PRCMPeripheralReset(PRCM_TIMERA1);
