@@ -358,7 +358,7 @@ TimerPeriodicIntHandler(void)
     	interupt_flag = 1;
     }
 
-    if(g_usTimerInts == (6*2*heartbeat))
+    if(g_usTimerInts == (6*heartbeat)+6)
 		PRCMSOCReset();
 }
 
