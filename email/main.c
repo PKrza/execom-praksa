@@ -55,6 +55,7 @@
 #include "gpio.h"
 #include "gpio_if.h"
 #include "adc_func.h"
+#include "utils.h"
 #ifndef NOTERM
 #include "uart_if.h"
 #endif
@@ -88,8 +89,8 @@
 #define WOLKABOUT_IP		0x25fc7d5a // 37.252.125.90
 #define PROBNI_IP			0x68288c3f // 104.40.140.63
 #define PORT_NUM            1883	   // port number
-#define SUBSCRIBE_TOPIC		"config/017"
-#define PUBLISH_TOPIC		"sensors/017"
+#define SUBSCRIBE_TOPIC		"config/016"
+#define PUBLISH_TOPIC		"sensors/016"
 
 // AES key and initialization vector
 char Key[16] = "no-preshared-key";
@@ -341,12 +342,12 @@ void AESCrypt(long direction, char *sourceBuff, char *resultBuff)
 void
 TimerPeriodicIntHandler(void)
 {
-/*
+
     unsigned long ulInts;
     ulInts = TimerIntStatus(TIMERA0_BASE, true);
     TimerIntClear(TIMERA0_BASE, ulInts);
-*/
-    WatchdogIntClear(WDT_BASE);
+
+   //WatchdogIntClear(WDT_BASE);
 
     g_usTimerInts++;
     if(g_usTimerInts == (6*heartbeat)-1 )
@@ -555,6 +556,7 @@ void MainTask(void *pvParameters)
 					pingSent = 0;
 				}
 				else
+					UtilsDelay((PERIODIC_TEST_CYCLES/4));
 					status = receivePublish();
 			} while(status < 0 || messageLength < 27 || messageLength > 29);
     		//} while(status < 0 || messageLength < 13 || messageLength > 17);
@@ -637,7 +639,7 @@ signed char Subscribe_MQTT(void)
 
 		struct SlTimeval_t tv;
 		tv.tv_sec = 0;  // 1 second Timeout
-		tv.tv_usec = 500000; // half a second
+		tv.tv_usec = 250000; // half a second
 		sl_SetSockOpt(iSockID, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv,sizeof(struct timeval));
 
 		SlSockNonblocking_t NBenableOption;
@@ -1000,7 +1002,7 @@ void MQTT_payload_string(char * buff_ptr, int temperature, char battery)
 
 void main()
 {
-	tBoolean bRetcode;
+	//tBoolean bRetcode;
 
 	BoardInit();
 
@@ -1010,15 +1012,15 @@ void main()
 	PinMuxConfig();
 	GPIOIntRegister(GPIOA1_BASE, PushButtonHandler);
 
-/*
+
 	// Set up the timer
 	PRCMPeripheralReset(PRCM_TIMERA0);
 	TimerConfigure(TIMERA0_BASE, TIMER_CFG_PERIODIC);
 	TimerPrescaleSet(TIMERA0_BASE, TIMER_A, 0);
 	TimerIntRegister(TIMERA0_BASE, TIMER_A, TimerPeriodicIntHandler);
-*/
 
 
+/*
 	PRCMPeripheralClkEnable(PRCM_WDT, PRCM_RUN_MODE_CLK);
 	//WatchdogUnlock(WDT_BASE);
 	WatchdogUnlock(WDT_BASE);
@@ -1028,7 +1030,7 @@ void main()
 	WatchdogReloadSet(WDT_BASE, (PERIODIC_TEST_CYCLES * 10));
 	WatchdogEnable(WDT_BASE);
 	//bRetcode = WatchdogRunning(WDT_BASE);
-
+*/
 
 /*
 	PRCMPeripheralReset(PRCM_TIMERA1);
